@@ -92,7 +92,7 @@ function SubsetBlock({
 
 export function MathPanel({ math }: { math: MathView }) {
   return (
-    <aside className="side side-math">
+    <div className="guide-fill">
       <div className="side-head">
         <p className="eyebrow">Working</p>
         <h2>{heading(math)}</h2>
@@ -102,7 +102,7 @@ export function MathPanel({ math }: { math: MathView }) {
         Figures are rounded to 3 decimals. The comparison that picks the split uses the full-precision gain, and it
         updates only when the new gain is strictly larger.
       </p>
-    </aside>
+    </div>
   );
 }
 
