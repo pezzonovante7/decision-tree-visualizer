@@ -22,6 +22,7 @@ export function App() {
   const [person, setPerson] = useState<number | null>(null);
   const [walk, setWalk] = useState(0);
   const [walkPlaying, setWalkPlaying] = useState(false);
+  const [guide, setGuide] = useState<"working" | "algorithm">("working");
   const previousIndex = useRef(0);
 
   const snapshot = trace[index];
@@ -192,21 +193,10 @@ export function App() {
         </div>
       </header>
 
-      <div className="formulas" aria-hidden="true">
-        <p>
-          Info(D) = − Σ p<sub>i</sub> log<sub>2</sub>(p<sub>i</sub>)
-        </p>
-        <p>
-          Gain(A) = Info(D) − Σ (|D<sub>j</sub>| / |D|) · Info(D<sub>j</sub>)
-        </p>
-        <p className="source">buys_computer · 14 rows · log base 2</p>
-      </div>
-
       {mode === "build" ? (
         <section className={`lecturer tone-${snapshot.tone}`} aria-live="polite">
           <div className="lecturer-kicker">
             <span>{snapshot.chapter}</span>
-            <span>{snapshot.breadcrumb}</span>
           </div>
           <h2>{snapshot.title}</h2>
           <p>{snapshot.narration}</p>
@@ -229,77 +219,113 @@ export function App() {
       )}
 
       <main className="workspace">
-        {mode === "build" ? (
-          <CodePanel lines={snapshot.lines} stack={snapshot.stack} />
-        ) : (
-          <aside className="side side-code">
-            <div className="side-head">
-              <p className="eyebrow">This person</p>
-              <h2>{person === null ? "Waiting" : `RID ${table.rows[person][0]}`}</h2>
-            </div>
-            {person === null ? (
-              <p className="side-note">The fourteen training rows are the people you can send through the tree.</p>
-            ) : (
-              <ul className="person-facts">
-                {table.candidateAttributes.map((attribute) => {
-                  const column = table.columns.indexOf(attribute);
-                  const hot = walkStep?.attribute === attribute;
-                  return (
-                    <li key={attribute} className={hot ? "is-hot" : ""}>
-                      <span>{attribute}</span>
-                      <strong>{table.rows[person][column]}</strong>
-                    </li>
-                  );
-                })}
-                <li className="actual">
-                  <span>buys_computer</span>
-                  <strong className={actual === "no" ? "no" : "yes"}>{actual}</strong>
-                </li>
-              </ul>
-            )}
-          </aside>
-        )}
-
         <section className="stage">
-          <TreeView nodes={mode === "build" ? snapshot.tree : useTree} freshIds={mode === "build" ? freshIds : new Set()} />
-          {mode === "use" && <p className="table-note">Click a row to walk that person down the tree.</p>}
-          <DataTable
-            table={table}
-            rows={mode === "build" ? snapshot.rows : table.rows.map((_, rowIndex) => rowIndex)}
-            dimRows={mode === "build" ? snapshot.dimRows : []}
-            highlightAttribute={
-              mode === "build" ? snapshot.highlightAttribute : walkStep?.attribute ?? null
-            }
-            emphasisValue={mode === "build" ? snapshot.emphasisValue : walkStep?.value ?? null}
-            usedAttributes={mode === "build" ? snapshot.usedAttributes : []}
-            selectedRow={mode === "use" ? person : null}
-            onSelectRow={mode === "use" ? choosePerson : null}
-          />
+          <div className="pane pane-tree">
+            <header className="pane-head">
+              <p className="eyebrow">The tree</p>
+              <p className="pane-meta">{mode === "build" ? snapshot.breadcrumb : "Finished tree"}</p>
+            </header>
+            <TreeView nodes={mode === "build" ? snapshot.tree : useTree} freshIds={mode === "build" ? freshIds : new Set()} />
+          </div>
+          <div className="pane pane-data">
+            <header className="pane-head">
+              <p className="eyebrow">The dataset</p>
+              <p className="pane-meta">
+                {mode === "build"
+                  ? `${snapshot.rows.length} ${snapshot.rows.length === 1 ? "person" : "people"} in this step`
+                  : "14 people · click a row"}
+              </p>
+            </header>
+            <DataTable
+              table={table}
+              rows={mode === "build" ? snapshot.rows : table.rows.map((_, rowIndex) => rowIndex)}
+              dimRows={mode === "build" ? snapshot.dimRows : []}
+              highlightAttribute={
+                mode === "build" ? snapshot.highlightAttribute : walkStep?.attribute ?? null
+              }
+              emphasisValue={mode === "build" ? snapshot.emphasisValue : walkStep?.value ?? null}
+              usedAttributes={mode === "build" ? snapshot.usedAttributes : []}
+              selectedRow={mode === "use" ? person : null}
+              onSelectRow={mode === "use" ? choosePerson : null}
+            />
+          </div>
         </section>
 
-        {mode === "build" ? (
-          <MathPanel math={snapshot.math} />
-        ) : (
-          <aside className="side side-math">
-            <div className="side-head">
-              <p className="eyebrow">Prediction</p>
-              <h2>{finishedWalk && result ? result.label : "Walking"}</h2>
-            </div>
-            <div className="math-body">
-              {result ? (
-                <ol className="rule-list path-list">
-                  {result.steps.slice(0, walk + 1).map((step, stepIndex) => (
-                    <li key={`${step.nodeId}-${stepIndex}`} className={stepIndex === walk ? "is-current" : ""}>
-                      {step.text}
-                    </li>
-                  ))}
-                </ol>
+        <aside className="guide">
+          {mode === "build" ? (
+            <>
+              <div className="guide-switch" role="tablist" aria-label="Lesson notes">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={guide === "working"}
+                  className={guide === "working" ? "is-on" : ""}
+                  onClick={() => setGuide("working")}
+                >
+                  Working
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={guide === "algorithm"}
+                  className={guide === "algorithm" ? "is-on" : ""}
+                  onClick={() => setGuide("algorithm")}
+                >
+                  Algorithm
+                </button>
+              </div>
+              {guide === "working" ? (
+                <MathPanel math={snapshot.math} />
               ) : (
-                <p>The finished tree is already grown. Age is the first question, then student or credit rating.</p>
+                <CodePanel lines={snapshot.lines} stack={snapshot.stack} />
               )}
+            </>
+          ) : (
+            <div className="guide-fill">
+              <div className="side-head">
+                <p className="eyebrow">This person</p>
+                <h2>{person === null ? "Waiting" : `RID ${table.rows[person][0]}`}</h2>
+              </div>
+              {person === null ? (
+                <p className="side-note">Click a row in the dataset. The tree asks its questions for that person.</p>
+              ) : (
+                <ul className="person-facts">
+                  {table.candidateAttributes.map((attribute) => {
+                    const column = table.columns.indexOf(attribute);
+                    const hot = walkStep?.attribute === attribute;
+                    return (
+                      <li key={attribute} className={hot ? "is-hot" : ""}>
+                        <span>{attribute}</span>
+                        <strong>{table.rows[person][column]}</strong>
+                      </li>
+                    );
+                  })}
+                  <li className="actual">
+                    <span>buys_computer</span>
+                    <strong className={actual === "no" ? "no" : "yes"}>{actual}</strong>
+                  </li>
+                </ul>
+              )}
+              <div className="side-head">
+                <p className="eyebrow">Prediction</p>
+                <h2>{finishedWalk && result ? result.label : "Walking"}</h2>
+              </div>
+              <div className="math-body">
+                {result ? (
+                  <ol className="rule-list path-list">
+                    {result.steps.slice(0, walk + 1).map((step, stepIndex) => (
+                      <li key={`${step.nodeId}-${stepIndex}`} className={stepIndex === walk ? "is-current" : ""}>
+                        {step.text}
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p>Age is the first question. Student or credit rating comes next.</p>
+                )}
+              </div>
             </div>
-          </aside>
-        )}
+          )}
+        </aside>
       </main>
 
       {mode === "build" ? (
