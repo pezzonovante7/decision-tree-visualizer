@@ -1,12 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { TreeNodeView } from "../engine/types";
 import { MixBar } from "./Fraction";
 
-const NODE_W = 188;
-const NODE_H = 92;
-const GAP_X = 44;
-const GAP_Y = 78;
-const PAD = 28;
+const NODE_W = 176;
+const NODE_H = 104;
+const GAP_X = 64;
+const GAP_Y = 100;
+const PAD = 40;
 
 type Positioned = TreeNodeView & { x: number; y: number };
 
@@ -76,9 +76,23 @@ export function TreeView({
   freshIds: ReadonlySet<string>;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  const [paneWidth, setPaneWidth] = useState(0);
   const layout = layoutTree(nodes);
   const byId = new Map(layout.nodes.map((node) => [node.id, node]));
   const activeId = nodes.find((node) => node.status === "active")?.id ?? "";
+  const available = Math.max(0, paneWidth - 16);
+  const scale = available > 0 && layout.width > 0 ? Math.min(1, available / layout.width) : 1;
+  const offsetX = available > 0 ? Math.max(0, (available - layout.width * scale) / 2) : 0;
+
+  useLayoutEffect(() => {
+    const root = scroller.current;
+    if (!root) return;
+    const measure = () => setPaneWidth(root.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const root = scroller.current;
@@ -86,16 +100,24 @@ export function TreeView({
     if (!root || !el) return;
     const rootRect = root.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
-    const delta = elRect.left + elRect.width / 2 - (rootRect.left + rootRect.width / 2);
-    if (Math.abs(delta) > 24) root.scrollLeft += delta;
-  }, [activeId, nodes.length]);
+    const deltaY = elRect.top + elRect.height / 2 - (rootRect.top + rootRect.height / 2);
+    if (Math.abs(deltaY) > 28) root.scrollTop += deltaY;
+  }, [activeId, nodes.length, scale]);
 
   return (
     <div className="tree-scroll" ref={scroller}>
       {nodes.length === 0 ? (
         <p className="tree-empty">The tree appears when the first node is created.</p>
       ) : (
-        <div className="tree-canvas" style={{ width: layout.width, height: layout.height }}>
+        <div className="tree-fit" style={{ height: layout.height * scale }}>
+          <div
+            className="tree-canvas"
+            style={{
+              width: layout.width,
+              height: layout.height,
+              transform: `translate(${offsetX}px, 0) scale(${scale})`,
+            }}
+          >
           <svg className="tree-svg" width={layout.width} height={layout.height}>
             {layout.nodes.map((node) => {
               if (!node.parentId) return null;
@@ -159,6 +181,7 @@ export function TreeView({
               <MixBar counts={node.counts} total={node.total} />
             </article>
           ))}
+          </div>
         </div>
       )}
     </div>

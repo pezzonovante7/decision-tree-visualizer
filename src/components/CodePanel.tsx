@@ -17,7 +17,7 @@ export function CodePanel({ lines, stack }: { lines: string[]; stack: string[] }
   }, [primary, lines.join("|")]);
 
   return (
-    <aside className="side side-code">
+    <div className="guide-fill">
       <div className="side-head">
         <p className="eyebrow">Pseudocode</p>
         <h2>The algorithm</h2>
@@ -57,6 +57,6 @@ export function CodePanel({ lines, stack }: { lines: string[]; stack: string[] }
         The chosen attribute is removed before the recursive call, matching the Java <code>split</code> method.
         Inside one branch that attribute has a single value, so asking it again would separate nobody.
       </p>
-    </aside>
+    </div>
   );
 }
